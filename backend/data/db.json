@@ -1,0 +1,28 @@
+{
+  "drivers": [
+    {
+      "discordId": "226848650188292096",
+      "username": "DamienGamer60",
+      "tag": "damiengamer60",
+      "avatar": "https://cdn.discordapp.com/avatars/226848650188292096/c200594ce46c6c09168aa14f65901c59.png?size=128",
+      "status": "validated",
+      "isStaff": true,
+      "joinedAt": "2026-07-09T23:18:03.513Z",
+      "validatedBy": "DamienGamer60",
+      "validatedAt": "2026-07-09T23:19:40.623Z"
+    }
+  ],
+  "team": [
+    {
+      "id": "1",
+      "name": "Damien",
+      "pseudo": "DamienGamer60",
+      "role": "Fondateur & Direction",
+      "discordId": "",
+      "avatar": "",
+      "bio": "Fondateur de FR | Industries Corporation.",
+      "order": 1
+    }
+  ],
+  "applications": []
+}

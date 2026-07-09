@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FR | Industries Corporation — VTC ETS2 / ATS</title>
+<meta name="description" content="FR | Industries Corporation (FIC) — Compagnie de transport virtuelle sur Euro Truck Simulator 2 et American Truck Simulator.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container nav-inner">
+    <a href="index.html" class="brand">
+      <span class="mark">FIC</span>
+      <span class="name">FR | Industries<small>Corporation</small></span>
+    </a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="main-nav">
+      <a href="index.html" class="active">Accueil</a>
+      <a href="recrutement.html">Recrutement</a>
+      <a href="statistiques.html">Statistiques</a>
+      <a href="equipe.html">L'équipe</a>
+      <a href="espace-chauffeurs.html">Espace Chauffeurs</a>
+    </nav>
+  </div>
+  <div class="route-line"></div>
+</header>
+
+<section class="tight">
+  <div class="container">
+    <span class="eyebrow">Compagnie de transport virtuelle — ETS2 / ATS</span>
+    <h1>Notre devise,<br>votre réussite.</h1>
+    <p style="max-width:560px; font-size:1.1rem;">FR | Industries Corporation est une VTC active sur TruckersMP, reconnue pour la rigueur de ses convois, la formation de ses chauffeurs et l'esprit de flotte qui l'anime.</p>
+    <div style="display:flex; gap:14px; margin-top:28px; flex-wrap:wrap;">
+      <a href="recrutement.html" class="btn">Rejoindre la flotte</a>
+      <a href="statistiques.html" class="btn secondary">Voir les statistiques</a>
+    </div>
+  </div>
+</section>
+
+<section class="tight">
+  <div class="container">
+    <div class="panel">
+      <span class="eyebrow">Manifeste de route — chiffres clés</span>
+      <div class="grid grid-4" id="home-stats">
+        <div class="stat-block"><div class="num">—</div><div class="label">Km parcourus</div></div>
+        <div class="stat-block"><div class="num">—</div><div class="label">Livraisons</div></div>
+        <div class="stat-block"><div class="num">—</div><div class="label">Chauffeurs actifs</div></div>
+        <div class="stat-block"><div class="num">—</div><div class="label">Convois organisés</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <span class="eyebrow">Naviguer sur le site</span>
+    <h2>Trois arrêts, une destination</h2>
+    <div class="grid grid-3" style="margin-top:24px;">
+      <a href="recrutement.html" class="card">
+        <h3>Recrutement</h3>
+        <p>Les conditions d'admission, ce qu'on attend de toi sur la route, et le formulaire de candidature.</p>
+      </a>
+      <a href="equipe.html" class="card">
+        <h3>Meet the team</h3>
+        <p>La direction et le staff qui font tourner FIC au quotidien.</p>
+      </a>
+      <a href="espace-chauffeurs.html" class="card">
+        <h3>Espace Chauffeurs</h3>
+        <p>Connexion via Discord, validée manuellement par le staff, pour accéder à l'espace membre.</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <span>© <span id="year"></span> FR | Industries Corporation. Compagnie virtuelle — sans lien avec un transporteur réel.</span>
+    <span>ETS2 / ATS • TruckersMP</span>
+  </div>
+</footer>
+
+<script src="js/config.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  (async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/stats`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const c = data.company || {};
+      const blocks = document.querySelectorAll('#home-stats .num');
+      const km = c.distance ?? c.total_distance ?? null;
+      const jobs = c.jobs_count ?? c.total_jobs ?? null;
+      const members = (data.members || []).length || c.members_count || null;
+      const convoys = c.events_count ?? c.convoys_count ?? null;
+      if (km) blocks[0].textContent = Number(km).toLocaleString('fr-FR');
+      if (jobs) blocks[1].textContent = Number(jobs).toLocaleString('fr-FR');
+      if (members) blocks[2].textContent = members;
+      if (convoys) blocks[3].textContent = convoys;
+    } catch (e) { /* API pas encore configurée, on garde les tirets */ }
+  })();
+</script>
+</body>
+</html>

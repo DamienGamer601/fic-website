@@ -1,0 +1,22 @@
+{
+  "name": "fic-website-backend",
+  "version": "1.0.0",
+  "description": "Backend API pour le site FR | Industries Corporation - OAuth2 Discord, validation staff, proxy TruckyApp",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "express-session": "^1.18.1",
+    "lowdb": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Statistiques — FR | Industries Corporation</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container nav-inner">
+    <a href="index.html" class="brand">
+      <span class="mark">FIC</span>
+      <span class="name">FR | Industries<small>Corporation</small></span>
+    </a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="main-nav">
+      <a href="index.html">Accueil</a>
+      <a href="recrutement.html">Recrutement</a>
+      <a href="statistiques.html" class="active">Statistiques</a>
+      <a href="equipe.html">L'équipe</a>
+      <a href="espace-chauffeurs.html">Espace Chauffeurs</a>
+    </nav>
+  </div>
+  <div class="route-line"></div>
+</header>
+
+<section class="tight">
+  <div class="container">
+    <span class="eyebrow">Données en direct — TruckyApp VTC Hub</span>
+    <h1>Statistiques de la flotte</h1>
+    <p style="max-width:560px;">Distance parcourue, livraisons effectuées et classement des chauffeurs, synchronisés depuis notre page <a href="https://hub.truckyapp.com/company/82" target="_blank" rel="noopener" style="color:var(--accent-bright); text-decoration:underline;">TruckyApp</a>.</p>
+  </div>
+</section>
+
+<section class="tight">
+  <div class="container">
+    <div class="grid grid-4" id="global-stats">
+      <div class="panel stat-block"><div class="num">—</div><div class="label">Km parcourus</div></div>
+      <div class="panel stat-block"><div class="num">—</div><div class="label">Livraisons</div></div>
+      <div class="panel stat-block"><div class="num">—</div><div class="label">Chauffeurs</div></div>
+      <div class="panel stat-block"><div class="num">—</div><div class="label">Revenu (€ virtuels)</div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <span class="eyebrow">Classement</span>
+    <h2>Meilleurs chauffeurs</h2>
+    <div class="panel" style="margin-top:20px; padding:0; overflow-x:auto;">
+      <table id="members-table">
+        <thead>
+          <tr><th>#</th><th>Chauffeur</th><th>Km parcourus</th><th>Livraisons</th></tr>
+        </thead>
+        <tbody id="members-tbody">
+          <tr><td colspan="4" class="empty-state">Chargement des statistiques…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <span>© <span id="year"></span> FR | Industries Corporation.</span>
+    <span>Données fournies par TruckyApp</span>
+  </div>
+</footer>
+
+<script src="js/config.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  function fmt(n) { return n == null ? '—' : Number(n).toLocaleString('fr-FR'); }
+
+  (async () => {
+    const tbody = document.getElementById('members-tbody');
+    try {
+      const res = await fetch(`${API_BASE}/api/stats`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'API indisponible');
+      }
+      const data = await res.json();
+      const c = data.company || {};
+      const members = data.members || [];
+
+      const nums = document.querySelectorAll('#global-stats .num');
+      nums[0].textContent = fmt(c.distance ?? c.total_distance);
+      nums[1].textContent = fmt(c.jobs_count ?? c.total_jobs);
+      nums[2].textContent = fmt(members.length || c.members_count);
+      nums[3].textContent = fmt(c.revenue ?? c.total_revenue);
+
+      if (!members.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="empty-state">Aucun chauffeur trouvé sur TruckyApp pour le moment.</td></tr>`;
+        return;
+      }
+
+      const sorted = [...members].sort((a, b) => (b.distance ?? 0) - (a.distance ?? 0));
+      tbody.innerHTML = sorted.map((m, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${m.username ?? m.name ?? 'Chauffeur'}</td>
+          <td>${fmt(m.distance)} km</td>
+          <td>${fmt(m.jobs_count ?? m.jobs)}</td>
+        </tr>
+      `).join('');
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="4" class="empty-state">Statistiques indisponibles pour le moment (${e.message}). Consulte directement <a href="https://hub.truckyapp.com/company/82" target="_blank" style="color:var(--accent-bright);">la page TruckyApp</a>.</td></tr>`;
+    }
+  })();
+</script>
+</body>
+</html>

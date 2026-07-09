@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L'équipe — FR | Industries Corporation</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container nav-inner">
+    <a href="index.html" class="brand">
+      <span class="mark">FIC</span>
+      <span class="name">FR | Industries<small>Corporation</small></span>
+    </a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="main-nav">
+      <a href="index.html">Accueil</a>
+      <a href="recrutement.html">Recrutement</a>
+      <a href="statistiques.html">Statistiques</a>
+      <a href="equipe.html" class="active">L'équipe</a>
+      <a href="espace-chauffeurs.html">Espace Chauffeurs</a>
+    </nav>
+  </div>
+  <div class="route-line"></div>
+</header>
+
+<section class="tight">
+  <div class="container">
+    <span class="eyebrow">Meet the team</span>
+    <h1>Derrière le volant de FIC</h1>
+    <p style="max-width:560px;">La direction et le staff qui organisent les convois, valident les candidatures et font vivre la compagnie au quotidien.</p>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="grid grid-3" id="team-grid">
+      <div class="empty-state" style="grid-column:1/-1;">Chargement de l'équipe…</div>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <span>© <span id="year"></span> FR | Industries Corporation.</span>
+    <span>ETS2 / ATS • TruckersMP</span>
+  </div>
+</footer>
+
+<script src="js/config.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  (async () => {
+    const grid = document.getElementById('team-grid');
+    try {
+      const res = await fetch(`${API_BASE}/api/team`);
+      const team = await res.json();
+      if (!team.length) {
+        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">L'équipe n'a pas encore été renseignée.</div>`;
+        return;
+      }
+      grid.innerHTML = team.map(m => `
+        <div class="card" style="text-align:center;">
+          <img src="${m.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}"
+               alt="${m.name}" width="80" height="80"
+               style="border-radius:50%; border:2px solid var(--accent-bright); margin-bottom:14px;">
+          <h3 style="margin-bottom:2px;">${m.name}</h3>
+          <div class="badge" style="margin-bottom:12px;">${m.role}</div>
+          <p>${m.bio || ''}</p>
+        </div>
+      `).join('');
+    } catch (e) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">Impossible de charger l'équipe pour le moment.</div>`;
+    }
+  })();
+</script>
+</body>
+</html>

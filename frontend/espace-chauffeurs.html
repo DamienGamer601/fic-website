@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Espace Chauffeurs — FR | Industries Corporation</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container nav-inner">
+    <a href="index.html" class="brand">
+      <span class="mark">FIC</span>
+      <span class="name">FR | Industries<small>Corporation</small></span>
+    </a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="main-nav">
+      <a href="index.html">Accueil</a>
+      <a href="recrutement.html">Recrutement</a>
+      <a href="statistiques.html">Statistiques</a>
+      <a href="equipe.html">L'équipe</a>
+      <a href="espace-chauffeurs.html" class="active">Espace Chauffeurs</a>
+    </nav>
+  </div>
+  <div class="route-line"></div>
+</header>
+
+<section class="tight">
+  <div class="container">
+    <span class="eyebrow">Accès membres</span>
+    <h1>Espace Chauffeurs</h1>
+    <p style="max-width:560px;">Connecte-toi avec ton compte Discord. L'accès complet est débloqué une fois ta candidature validée manuellement par un membre du staff.</p>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div id="app-root" style="max-width:640px; margin:0 auto;">
+      <div class="panel" style="text-align:center;">
+        <p>Chargement…</p>
+      </div>
+    </div>
+
+    <!-- Panneau staff, affiché uniquement si l'utilisateur connecté a le rôle Staff -->
+    <div id="admin-panel" class="panel" style="margin-top:32px; display:none;">
+      <span class="eyebrow">Réservé au staff</span>
+      <h2>Chauffeurs en attente de validation</h2>
+      <div id="pending-list"></div>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <span>© <span id="year"></span> FR | Industries Corporation.</span>
+    <span>Connexion sécurisée via Discord OAuth2</span>
+  </div>
+</footer>
+
+<script src="js/config.js"></script>
+<script src="js/nav.js"></script>
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+
+const root = document.getElementById('app-root');
+const adminPanel = document.getElementById('admin-panel');
+const params = new URLSearchParams(location.search);
+const authError = params.get('error');
+
+const STATUS_META = {
+  pending: { label: 'Candidature en attente', class: 'warn', text: "Ton compte Discord est bien lié. Un membre du staff doit encore valider ton accès à l'espace chauffeur. Reviens un peu plus tard !" },
+  validated: { label: 'Chauffeur validé', class: 'ok', text: "Ton accès est actif. Bienvenue à bord, bonne route sur les routes de FIC !" },
+  refused: { label: 'Candidature refusée', class: 'danger', text: "Ta demande n'a pas été validée. Contacte le staff sur Discord pour plus d'informations." },
+};
+
+function renderLoggedOut() {
+  root.innerHTML = `
+    <div class="panel" style="text-align:center;">
+      ${authError ? `<p style="color:var(--danger);">La connexion a échoué (${authError}). Réessaie.</p>` : ''}
+      <h2 style="margin-bottom:10px;">Connexion requise</h2>
+      <p>Utilise ton compte Discord pour accéder à ton profil chauffeur.</p>
+      <a class="btn" href="${API_BASE}/auth/discord">Se connecter avec Discord</a>
+    </div>
+  `;
+}
+
+function renderLoggedIn(driver) {
+  const meta = STATUS_META[driver.status] || STATUS_META.pending;
+  root.innerHTML = `
+    <div class="panel" style="text-align:center;">
+      <img src="${driver.avatar}" alt="${driver.username}" width="72" height="72"
+           style="border-radius:50%; border:2px solid var(--accent-bright); margin-bottom:16px;">
+      <h2 style="margin-bottom:6px;">${driver.username}</h2>
+      <div class="badge ${meta.class}" style="margin-bottom:18px;"><span class="dot"></span>${meta.label}</div>
+      <p>${meta.text}</p>
+      <button class="btn secondary" id="logout-btn" style="margin-top:10px;">Se déconnecter</button>
+    </div>
+  `;
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
+    location.reload();
+  });
+
+  if (driver.isStaff) loadAdminPanel();
+}
+
+async function loadAdminPanel() {
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/pending`, { credentials: 'include' });
+    if (!res.ok) return;
+    const pending = await res.json();
+    adminPanel.style.display = 'block';
+    const list = document.getElementById('pending-list');
+
+    if (!pending.length) {
+      list.innerHTML = `<div class="empty-state">Aucun chauffeur en attente. Tout est à jour.</div>`;
+      return;
+    }
+
+    list.innerHTML = pending.map(d => `
+      <div class="card" style="display:flex; align-items:center; gap:14px; margin-bottom:12px;">
+        <img src="${d.avatar}" width="44" height="44" style="border-radius:50%;" alt="">
+        <div style="flex:1;">
+          <strong>${d.username}</strong>
+          <div style="color:var(--text-faint); font-size:0.85rem;">${d.tag} • demandé le ${new Date(d.joinedAt).toLocaleDateString('fr-FR')}</div>
+        </div>
+        <button class="btn" data-action="validate" data-id="${d.discordId}">Valider</button>
+        <button class="btn secondary" data-action="refuse" data-id="${d.discordId}">Refuser</button>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('button[data-action]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        const action = btn.dataset.action;
+        await fetch(`${API_BASE}/api/admin/${action}/${btn.dataset.id}`, { method: 'POST', credentials: 'include' });
+        loadAdminPanel();
+      });
+    });
+  } catch (e) { /* pas staff ou erreur réseau */ }
+}
+
+(async () => {
+  try {
+    const res = await fetch(`${API_BASE}/api/me`, { credentials: 'include' });
+    if (res.status === 401) return renderLoggedOut();
+    const driver = await res.json();
+    renderLoggedIn(driver);
+  } catch (e) {
+    renderLoggedOut();
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recrutement — FR | Industries Corporation</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container nav-inner">
+    <a href="index.html" class="brand">
+      <span class="mark">FIC</span>
+      <span class="name">FR | Industries<small>Corporation</small></span>
+    </a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="main-nav">
+      <a href="index.html">Accueil</a>
+      <a href="recrutement.html" class="active">Recrutement</a>
+      <a href="statistiques.html">Statistiques</a>
+      <a href="equipe.html">L'équipe</a>
+      <a href="espace-chauffeurs.html">Espace Chauffeurs</a>
+    </nav>
+  </div>
+  <div class="route-line"></div>
+</header>
+
+<section class="tight">
+  <div class="container">
+    <span class="eyebrow">Rejoindre la flotte</span>
+    <h1>Recrutement</h1>
+    <p style="max-width:560px;">FIC recrute des chauffeurs motivés sur Euro Truck Simulator 2 et American Truck Simulator, prêts à rouler sérieusement et à représenter les couleurs de la compagnie sur TruckersMP.</p>
+  </div>
+</section>
+
+<section class="tight">
+  <div class="container grid grid-2">
+    <div class="panel">
+      <h3>Conditions d'admission</h3>
+      <ul style="color:var(--text-dim); line-height:1.9; padding-left:20px;">
+        <li>Compte TruckersMP en règle, sans bannissement actif</li>
+        <li>Discord actif — c'est notre PC de bord</li>
+        <li>Respect du code de la route et des autres joueurs en convoi</li>
+        <li>Micro fonctionnel apprécié pour les convois vocaux</li>
+        <li>Un minimum de sérieux, pas d'expérience minimale requise</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Ce que FIC t'apporte</h3>
+      <ul style="color:var(--text-dim); line-height:1.9; padding-left:20px;">
+        <li>Convois réguliers organisés par le staff</li>
+        <li>Un espace chauffeur dédié une fois validé</li>
+        <li>Une communauté active ETS2 / ATS</li>
+        <li>Un skin et un badge de compagnie</li>
+        <li>Une progression suivie via les statistiques VTC</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="panel" style="max-width:680px; margin:0 auto;">
+      <span class="eyebrow">Formulaire</span>
+      <h2>Déposer ma candidature</h2>
+      <form id="recruit-form">
+        <label for="pseudo">Pseudo en jeu</label>
+        <input id="pseudo" name="pseudo" required>
+
+        <label for="discordTag">Identifiant Discord</label>
+        <input id="discordTag" name="discordTag" placeholder="pseudo ou pseudo#0000" required>
+
+        <label for="age">Âge (optionnel)</label>
+        <input id="age" name="age" type="number" min="13" max="99">
+
+        <label for="jeu">Jeu principal</label>
+        <select id="jeu" name="jeu">
+          <option value="ETS2">Euro Truck Simulator 2</option>
+          <option value="ATS">American Truck Simulator</option>
+          <option value="Les deux">Les deux</option>
+        </select>
+
+        <label for="experience">Expérience VTC (optionnel)</label>
+        <textarea id="experience" name="experience" placeholder="VTC précédentes, nombre d'heures, etc."></textarea>
+
+        <label for="disponibilites">Disponibilités</label>
+        <input id="disponibilites" name="disponibilites" placeholder="Ex : soirs de semaine, week-ends...">
+
+        <label for="motivation">Pourquoi rejoindre FIC ?</label>
+        <textarea id="motivation" name="motivation" required></textarea>
+
+        <button type="submit" class="btn full">Envoyer ma candidature</button>
+        <p id="form-status" style="margin-top:14px; text-align:center;"></p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <span>© <span id="year"></span> FR | Industries Corporation.</span>
+    <span>ETS2 / ATS • TruckersMP</span>
+  </div>
+</footer>
+
+<script src="js/config.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  const form = document.getElementById('recruit-form');
+  const status = document.getElementById('form-status');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    status.textContent = 'Envoi en cours…';
+    status.style.color = 'var(--text-dim)';
+
+    const payload = Object.fromEntries(new FormData(form).entries());
+
+    try {
+      const res = await fetch(`${API_BASE}/api/recrutement`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error();
+      status.textContent = 'Candidature envoyée ! Le staff te recontactera sur Discord.';
+      status.style.color = 'var(--ok)';
+      form.reset();
+    } catch (err) {
+      status.textContent = "Erreur d'envoi. Réessaie ou contacte le staff sur Discord.";
+      status.style.color = 'var(--danger)';
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
