@@ -40,6 +40,15 @@ module.exports = function (db) {
     res.json(driver);
   });
 
+  // --- L'utilisateur lie son pseudo en jeu (TruckyApp / TruckersMP) pour retrouver ses stats perso ---
+  router.patch('/me', requireAuth, (req, res) => {
+    const { gameUsername } = req.body;
+    const target = db.get('drivers').find({ discordId: req.discordId });
+    if (!target.value()) return res.status(404).json({ error: 'Profil introuvable' });
+    target.assign({ gameUsername: gameUsername || null }).write();
+    res.json(target.value());
+  });
+
   // --- Admin : liste des chauffeurs en attente de validation ---
   router.get('/admin/pending', requireAuth, requireStaff, (req, res) => {
     res.json(db.get('drivers').filter({ status: 'pending' }).value());
@@ -81,6 +90,37 @@ module.exports = function (db) {
   // --- Équipe (page Meet the team, publique) ---
   router.get('/team', (req, res) => {
     res.json(db.get('team').sortBy('order').value());
+  });
+
+  // --- Convois : liste publique, triée par date ---
+  router.get('/convoys', (req, res) => {
+    const convoys = db.get('convoys').sortBy('date').value();
+    res.json(convoys);
+  });
+
+  // --- Convois : création par le staff ---
+  router.post('/admin/convoys', requireAuth, requireStaff, (req, res) => {
+    const { title, date, departure, destination, description, discordEventUrl } = req.body;
+    if (!title || !date) return res.status(400).json({ error: 'Titre et date requis' });
+
+    const convoy = {
+      id: Date.now().toString(),
+      title,
+      date, // ISO string attendue (date + heure)
+      departure: departure || '',
+      destination: destination || '',
+      description: description || '',
+      discordEventUrl: discordEventUrl || '',
+      createdAt: new Date().toISOString(),
+    };
+    db.get('convoys').push(convoy).write();
+    res.json(convoy);
+  });
+
+  // --- Convois : suppression par le staff ---
+  router.delete('/admin/convoys/:id', requireAuth, requireStaff, (req, res) => {
+    db.get('convoys').remove({ id: req.params.id }).write();
+    res.json({ ok: true });
   });
 
   // --- Recrutement : soumission d'une candidature ---
