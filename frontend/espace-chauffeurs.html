@@ -67,6 +67,16 @@ const root = document.getElementById('app-root');
 const adminPanel = document.getElementById('admin-panel');
 const params = new URLSearchParams(location.search);
 const authError = params.get('error');
+const incomingToken = params.get('token');
+
+// Si Discord vient de nous rediriger avec un token, on le stocke et on nettoie l'URL
+if (incomingToken) {
+  localStorage.setItem('fic_token', incomingToken);
+  history.replaceState({}, '', location.pathname);
+}
+
+function getToken() { return localStorage.getItem('fic_token'); }
+function authHeaders() { return { Authorization: `Bearer ${getToken()}` }; }
 
 const STATUS_META = {
   pending: { label: 'Candidature en attente', class: 'warn', text: "Ton compte Discord est bien lié. Un membre du staff doit encore valider ton accès à l'espace chauffeur. Reviens un peu plus tard !" },
@@ -97,8 +107,8 @@ function renderLoggedIn(driver) {
       <button class="btn secondary" id="logout-btn" style="margin-top:10px;">Se déconnecter</button>
     </div>
   `;
-  document.getElementById('logout-btn').addEventListener('click', async () => {
-    await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
+  document.getElementById('logout-btn').addEventListener('click', () => {
+    localStorage.removeItem('fic_token');
     location.reload();
   });
 
@@ -107,7 +117,7 @@ function renderLoggedIn(driver) {
 
 async function loadAdminPanel() {
   try {
-    const res = await fetch(`${API_BASE}/api/admin/pending`, { credentials: 'include' });
+    const res = await fetch(`${API_BASE}/api/admin/pending`, { headers: authHeaders() });
     if (!res.ok) return;
     const pending = await res.json();
     adminPanel.style.display = 'block';
@@ -134,7 +144,7 @@ async function loadAdminPanel() {
       btn.addEventListener('click', async () => {
         btn.disabled = true;
         const action = btn.dataset.action;
-        await fetch(`${API_BASE}/api/admin/${action}/${btn.dataset.id}`, { method: 'POST', credentials: 'include' });
+        await fetch(`${API_BASE}/api/admin/${action}/${btn.dataset.id}`, { method: 'POST', headers: authHeaders() });
         loadAdminPanel();
       });
     });
@@ -142,9 +152,13 @@ async function loadAdminPanel() {
 }
 
 (async () => {
+  if (!getToken()) return renderLoggedOut();
   try {
-    const res = await fetch(`${API_BASE}/api/me`, { credentials: 'include' });
-    if (res.status === 401) return renderLoggedOut();
+    const res = await fetch(`${API_BASE}/api/me`, { headers: authHeaders() });
+    if (res.status === 401) {
+      localStorage.removeItem('fic_token');
+      return renderLoggedOut();
+    }
     const driver = await res.json();
     renderLoggedIn(driver);
   } catch (e) {
