@@ -29,24 +29,81 @@
 <section class="tight">
   <div class="container">
     <span class="eyebrow">Accès membres</span>
-    <h1>Espace Chauffeurs</h1>
-    <p style="max-width:560px;">Connecte-toi avec ton compte Discord. L'accès complet est débloqué une fois ta candidature validée manuellement par un membre du staff.</p>
+    <h1 id="page-title">Espace Chauffeurs</h1>
+    <p id="page-intro" style="max-width:560px;">Connecte-toi avec ton compte Discord. L'accès complet est débloqué une fois ta candidature validée manuellement par un membre du staff.</p>
   </div>
 </section>
 
-<section>
+<section class="tight">
   <div class="container">
-    <div id="app-root" style="max-width:640px; margin:0 auto;">
-      <div class="panel" style="text-align:center;">
-        <p>Chargement…</p>
+    <div id="app-root"><div class="panel" style="text-align:center;"><p>Chargement…</p></div></div>
+  </div>
+</section>
+
+<!-- Dashboard chauffeur validé -->
+<section class="tight" id="dashboard-section" style="display:none;">
+  <div class="container grid grid-2">
+    <div class="panel">
+      <span class="eyebrow">Mes statistiques</span>
+      <h3>Progression sur la route</h3>
+      <p style="font-size:0.9rem;">Associe ton pseudo en jeu (ETS2/ATS, celui utilisé sur TruckyApp) pour retrouver tes stats perso ici.</p>
+      <div style="display:flex; gap:10px; margin-bottom:6px;">
+        <input id="game-username" placeholder="Ton pseudo en jeu" style="margin-bottom:0;">
+        <button class="btn secondary" id="save-username" style="white-space:nowrap;">Lier</button>
       </div>
+      <div id="my-stats" style="margin-top:18px;"></div>
     </div>
 
-    <!-- Panneau staff, affiché uniquement si l'utilisateur connecté a le rôle Staff -->
-    <div id="admin-panel" class="panel" style="margin-top:32px; display:none;">
+    <div class="panel">
+      <span class="eyebrow">À venir</span>
+      <h3>Prochains convois</h3>
+      <div id="convoys-list"><div class="empty-state">Chargement…</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Panneau staff -->
+<section class="tight">
+  <div class="container">
+    <div id="admin-panel" class="panel" style="display:none;">
       <span class="eyebrow">Réservé au staff</span>
       <h2>Chauffeurs en attente de validation</h2>
       <div id="pending-list"></div>
+
+      <div class="route-line" style="margin:28px 0;"></div>
+
+      <h2>Gérer les convois</h2>
+      <form id="convoy-form" class="grid grid-2" style="margin-top:10px;">
+        <div>
+          <label for="c-title">Titre du convoi</label>
+          <input id="c-title" required>
+        </div>
+        <div>
+          <label for="c-date">Date et heure</label>
+          <input id="c-date" type="datetime-local" required>
+        </div>
+        <div>
+          <label for="c-departure">Départ</label>
+          <input id="c-departure">
+        </div>
+        <div>
+          <label for="c-destination">Destination</label>
+          <input id="c-destination">
+        </div>
+        <div style="grid-column:1/-1;">
+          <label for="c-description">Description (optionnel)</label>
+          <textarea id="c-description"></textarea>
+        </div>
+        <div style="grid-column:1/-1;">
+          <label for="c-discord">Lien évènement Discord (optionnel)</label>
+          <input id="c-discord" placeholder="https://discord.gg/...">
+        </div>
+        <div style="grid-column:1/-1;">
+          <button type="submit" class="btn full">Publier le convoi</button>
+        </div>
+      </form>
+
+      <div id="admin-convoys-list" style="margin-top:24px;"></div>
     </div>
   </div>
 </section>
@@ -64,29 +121,32 @@
 document.getElementById('year').textContent = new Date().getFullYear();
 
 const root = document.getElementById('app-root');
+const dashboardSection = document.getElementById('dashboard-section');
 const adminPanel = document.getElementById('admin-panel');
 const params = new URLSearchParams(location.search);
 const authError = params.get('error');
 const incomingToken = params.get('token');
 
-// Si Discord vient de nous rediriger avec un token, on le stocke et on nettoie l'URL
 if (incomingToken) {
   localStorage.setItem('fic_token', incomingToken);
   history.replaceState({}, '', location.pathname);
 }
 
 function getToken() { return localStorage.getItem('fic_token'); }
-function authHeaders() { return { Authorization: `Bearer ${getToken()}` }; }
+function authHeaders(json) {
+  const h = { Authorization: `Bearer ${getToken()}` };
+  if (json) h['Content-Type'] = 'application/json';
+  return h;
+}
 
 const STATUS_META = {
   pending: { label: 'Candidature en attente', class: 'warn', text: "Ton compte Discord est bien lié. Un membre du staff doit encore valider ton accès à l'espace chauffeur. Reviens un peu plus tard !" },
-  validated: { label: 'Chauffeur validé', class: 'ok', text: "Ton accès est actif. Bienvenue à bord, bonne route sur les routes de FIC !" },
   refused: { label: 'Candidature refusée', class: 'danger', text: "Ta demande n'a pas été validée. Contacte le staff sur Discord pour plus d'informations." },
 };
 
 function renderLoggedOut() {
   root.innerHTML = `
-    <div class="panel" style="text-align:center;">
+    <div class="panel" style="text-align:center; max-width:640px; margin:0 auto;">
       ${authError ? `<p style="color:var(--danger);">La connexion a échoué (${authError}). Réessaie.</p>` : ''}
       <h2 style="margin-bottom:10px;">Connexion requise</h2>
       <p>Utilise ton compte Discord pour accéder à ton profil chauffeur.</p>
@@ -95,10 +155,16 @@ function renderLoggedOut() {
   `;
 }
 
-function renderLoggedIn(driver) {
-  const meta = STATUS_META[driver.status] || STATUS_META.pending;
+function logout() {
+  localStorage.removeItem('fic_token');
+  location.reload();
+}
+
+// --- Statut en attente / refusé : simple carte, pas de dashboard ---
+function renderStatusCard(driver) {
+  const meta = STATUS_META[driver.status];
   root.innerHTML = `
-    <div class="panel" style="text-align:center;">
+    <div class="panel" style="text-align:center; max-width:640px; margin:0 auto;">
       <img src="${driver.avatar}" alt="${driver.username}" width="72" height="72"
            style="border-radius:50%; border:2px solid var(--accent-bright); margin-bottom:16px;">
       <h2 style="margin-bottom:6px;">${driver.username}</h2>
@@ -107,12 +173,105 @@ function renderLoggedIn(driver) {
       <button class="btn secondary" id="logout-btn" style="margin-top:10px;">Se déconnecter</button>
     </div>
   `;
-  document.getElementById('logout-btn').addEventListener('click', () => {
-    localStorage.removeItem('fic_token');
-    location.reload();
+  document.getElementById('logout-btn').addEventListener('click', logout);
+}
+
+// --- Chauffeur validé : dashboard complet ---
+function renderDashboard(driver) {
+  document.getElementById('page-title').textContent = `Bienvenue, ${driver.username}`;
+  document.getElementById('page-intro').textContent = "Ton espace personnel : suis ta progression et les prochains convois de la flotte.";
+
+  root.innerHTML = `
+    <div class="panel" style="display:flex; align-items:center; gap:18px; flex-wrap:wrap;">
+      <img src="${driver.avatar}" alt="${driver.username}" width="64" height="64"
+           style="border-radius:50%; border:2px solid var(--accent-bright);">
+      <div style="flex:1; min-width:200px;">
+        <h3 style="margin-bottom:4px;">${driver.username}</h3>
+        <div class="badge ok"><span class="dot"></span>Chauffeur validé</div>
+        <div style="color:var(--text-faint); font-size:0.85rem; margin-top:6px;">
+          Membre depuis le ${new Date(driver.joinedAt).toLocaleDateString('fr-FR')}
+        </div>
+      </div>
+      <button class="btn secondary" id="logout-btn">Se déconnecter</button>
+    </div>
+  `;
+  document.getElementById('logout-btn').addEventListener('click', logout);
+
+  dashboardSection.style.display = 'block';
+  document.getElementById('game-username').value = driver.gameUsername || '';
+  loadMyStats(driver);
+  loadConvoys();
+
+  document.getElementById('save-username').addEventListener('click', async () => {
+    const gameUsername = document.getElementById('game-username').value.trim();
+    const res = await fetch(`${API_BASE}/api/me`, {
+      method: 'PATCH',
+      headers: authHeaders(true),
+      body: JSON.stringify({ gameUsername }),
+    });
+    const updated = await res.json();
+    loadMyStats(updated);
   });
 
   if (driver.isStaff) loadAdminPanel();
+}
+
+function fmt(n) { return n == null ? '—' : Number(n).toLocaleString('fr-FR'); }
+
+async function loadMyStats(driver) {
+  const box = document.getElementById('my-stats');
+  if (!driver.gameUsername) {
+    box.innerHTML = `<div class="empty-state">Renseigne ton pseudo en jeu ci-dessus pour afficher tes statistiques personnelles.</div>`;
+    return;
+  }
+  box.innerHTML = `<div class="empty-state">Recherche de tes statistiques…</div>`;
+  try {
+    const res = await fetch(`${API_BASE}/api/stats`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    const members = data.members || [];
+    const mine = members.find(m => (m.username ?? m.name ?? '').toLowerCase() === driver.gameUsername.toLowerCase());
+    if (!mine) {
+      box.innerHTML = `<div class="empty-state">Aucune correspondance trouvée sur TruckyApp pour "${driver.gameUsername}". Vérifie l'orthographe exacte de ton pseudo en jeu.</div>`;
+      return;
+    }
+    box.innerHTML = `
+      <div class="grid grid-2">
+        <div class="stat-block"><div class="num">${fmt(mine.distance)}</div><div class="label">Km parcourus</div></div>
+        <div class="stat-block"><div class="num">${fmt(mine.jobs_count ?? mine.jobs)}</div><div class="label">Livraisons</div></div>
+      </div>
+    `;
+  } catch (e) {
+    box.innerHTML = `<div class="empty-state">Statistiques indisponibles pour le moment.</div>`;
+  }
+}
+
+async function loadConvoys() {
+  const list = document.getElementById('convoys-list');
+  try {
+    const res = await fetch(`${API_BASE}/api/convoys`);
+    const convoys = await res.json();
+    const upcoming = convoys.filter(c => new Date(c.date) >= new Date());
+    if (!upcoming.length) {
+      list.innerHTML = `<div class="empty-state">Aucun convoi programmé pour le moment.</div>`;
+      return;
+    }
+    list.innerHTML = upcoming.map(c => `
+      <div class="card" style="margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+          <strong>${c.title}</strong>
+          <span style="color:var(--accent-bright); font-family:var(--font-display); font-size:0.8rem;">
+            ${new Date(c.date).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
+          </span>
+        </div>
+        ${c.departure || c.destination ? `<div style="color:var(--text-dim); font-size:0.9rem; margin-top:6px;">${c.departure || '?'} → ${c.destination || '?'}</div>` : ''}
+        ${c.description ? `<p style="margin-top:8px; margin-bottom:0;">${c.description}</p>` : ''}
+        ${c.discordEventUrl ? `<a href="${c.discordEventUrl}" target="_blank" rel="noopener" style="color:var(--accent-bright); font-size:0.85rem;">Voir l'évènement Discord →</a>` : ''}
+      </div>
+    `).join('');
+  } catch (e) {
+    list.innerHTML = `<div class="empty-state">Impossible de charger les convois.</div>`;
+  }
 }
 
 async function loadAdminPanel() {
@@ -125,31 +284,84 @@ async function loadAdminPanel() {
 
     if (!pending.length) {
       list.innerHTML = `<div class="empty-state">Aucun chauffeur en attente. Tout est à jour.</div>`;
-      return;
+    } else {
+      list.innerHTML = pending.map(d => `
+        <div class="card" style="display:flex; align-items:center; gap:14px; margin-bottom:12px;">
+          <img src="${d.avatar}" width="44" height="44" style="border-radius:50%;" alt="">
+          <div style="flex:1;">
+            <strong>${d.username}</strong>
+            <div style="color:var(--text-faint); font-size:0.85rem;">${d.tag} • demandé le ${new Date(d.joinedAt).toLocaleDateString('fr-FR')}</div>
+          </div>
+          <button class="btn" data-action="validate" data-id="${d.discordId}">Valider</button>
+          <button class="btn secondary" data-action="refuse" data-id="${d.discordId}">Refuser</button>
+        </div>
+      `).join('');
+
+      list.querySelectorAll('button[data-action]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          const action = btn.dataset.action;
+          await fetch(`${API_BASE}/api/admin/${action}/${btn.dataset.id}`, { method: 'POST', headers: authHeaders() });
+          loadAdminPanel();
+        });
+      });
     }
 
-    list.innerHTML = pending.map(d => `
-      <div class="card" style="display:flex; align-items:center; gap:14px; margin-bottom:12px;">
-        <img src="${d.avatar}" width="44" height="44" style="border-radius:50%;" alt="">
-        <div style="flex:1;">
-          <strong>${d.username}</strong>
-          <div style="color:var(--text-faint); font-size:0.85rem;">${d.tag} • demandé le ${new Date(d.joinedAt).toLocaleDateString('fr-FR')}</div>
+    loadAdminConvoys();
+  } catch (e) { /* pas staff ou erreur réseau */ }
+}
+
+async function loadAdminConvoys() {
+  const box = document.getElementById('admin-convoys-list');
+  try {
+    const res = await fetch(`${API_BASE}/api/convoys`);
+    const convoys = await res.json();
+    if (!convoys.length) {
+      box.innerHTML = `<div class="empty-state">Aucun convoi publié.</div>`;
+      return;
+    }
+    box.innerHTML = convoys.map(c => `
+      <div class="card" style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px;">
+        <div>
+          <strong>${c.title}</strong>
+          <div style="color:var(--text-faint); font-size:0.85rem;">${new Date(c.date).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}</div>
         </div>
-        <button class="btn" data-action="validate" data-id="${d.discordId}">Valider</button>
-        <button class="btn secondary" data-action="refuse" data-id="${d.discordId}">Refuser</button>
+        <button class="btn secondary" data-delete="${c.id}">Supprimer</button>
       </div>
     `).join('');
 
-    list.querySelectorAll('button[data-action]').forEach(btn => {
+    box.querySelectorAll('button[data-delete]').forEach(btn => {
       btn.addEventListener('click', async () => {
         btn.disabled = true;
-        const action = btn.dataset.action;
-        await fetch(`${API_BASE}/api/admin/${action}/${btn.dataset.id}`, { method: 'POST', headers: authHeaders() });
-        loadAdminPanel();
+        await fetch(`${API_BASE}/api/admin/convoys/${btn.dataset.delete}`, { method: 'DELETE', headers: authHeaders() });
+        loadAdminConvoys();
+        loadConvoys();
       });
     });
-  } catch (e) { /* pas staff ou erreur réseau */ }
+  } catch (e) {
+    box.innerHTML = `<div class="empty-state">Impossible de charger les convois.</div>`;
+  }
 }
+
+document.getElementById('convoy-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = {
+    title: document.getElementById('c-title').value,
+    date: new Date(document.getElementById('c-date').value).toISOString(),
+    departure: document.getElementById('c-departure').value,
+    destination: document.getElementById('c-destination').value,
+    description: document.getElementById('c-description').value,
+    discordEventUrl: document.getElementById('c-discord').value,
+  };
+  await fetch(`${API_BASE}/api/admin/convoys`, {
+    method: 'POST',
+    headers: authHeaders(true),
+    body: JSON.stringify(payload),
+  });
+  e.target.reset();
+  loadAdminConvoys();
+  loadConvoys();
+});
 
 (async () => {
   if (!getToken()) return renderLoggedOut();
@@ -160,7 +372,11 @@ async function loadAdminPanel() {
       return renderLoggedOut();
     }
     const driver = await res.json();
-    renderLoggedIn(driver);
+    if (driver.status === 'validated') {
+      renderDashboard(driver);
+    } else {
+      renderStatusCard(driver);
+    }
   } catch (e) {
     renderLoggedOut();
   }
