@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+const jwt = require('jsonwebtoken');
 const discord = require('../discord');
 
 const TRUCKY_API = 'https://e.truckyapp.com/api/v1';
@@ -10,12 +11,20 @@ module.exports = function (db) {
   const router = express.Router();
 
   function requireAuth(req, res, next) {
-    if (!req.session.discordId) return res.status(401).json({ error: 'Non connecté' });
-    next();
+    const header = req.headers.authorization || '';
+    const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+    if (!token) return res.status(401).json({ error: 'Non connecté' });
+    try {
+      const payload = jwt.verify(token, process.env.SESSION_SECRET);
+      req.discordId = payload.discordId;
+      next();
+    } catch (err) {
+      return res.status(401).json({ error: 'Session invalide ou expirée' });
+    }
   }
 
   function currentDriver(req) {
-    return db.get('drivers').find({ discordId: req.session.discordId }).value();
+    return db.get('drivers').find({ discordId: req.discordId }).value();
   }
 
   function requireStaff(req, res, next) {

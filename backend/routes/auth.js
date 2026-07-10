@@ -1,4 +1,5 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const discord = require('../discord');
 
 module.exports = function (db) {
@@ -16,7 +17,9 @@ module.exports = function (db) {
     res.redirect(`https://discord.com/oauth2/authorize?${params.toString()}`);
   });
 
-  // Étape 2 : Discord redirige ici avec un code
+  // Étape 2 : Discord redirige ici avec un code. On échange le code, on crée/maj le
+  // chauffeur, puis on renvoie un token signé au frontend via l'URL (pas de cookie
+  // cross-domain : plus fiable entre deux sous-domaines onrender.com différents).
   router.get('/discord/callback', async (req, res) => {
     const { code } = req.query;
     if (!code) return res.redirect(`${process.env.FRONTEND_URL}/espace-chauffeurs.html?error=no_code`);
@@ -48,16 +51,17 @@ module.exports = function (db) {
         db.get('drivers').find({ discordId: profile.id }).assign(driver).write();
       }
 
-      req.session.discordId = profile.id;
-      res.redirect(`${process.env.FRONTEND_URL}/espace-chauffeurs.html`);
+      const sessionToken = jwt.sign(
+        { discordId: profile.id },
+        process.env.SESSION_SECRET,
+        { expiresIn: '30d' }
+      );
+
+      res.redirect(`${process.env.FRONTEND_URL}/espace-chauffeurs.html?token=${sessionToken}`);
     } catch (err) {
       console.error('Erreur OAuth Discord:', err.response?.data || err.message);
       res.redirect(`${process.env.FRONTEND_URL}/espace-chauffeurs.html?error=auth_failed`);
     }
-  });
-
-  router.post('/logout', (req, res) => {
-    req.session.destroy(() => res.json({ ok: true }));
   });
 
   return router;
