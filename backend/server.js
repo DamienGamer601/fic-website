@@ -7,7 +7,7 @@ const FileSync = require('lowdb/adapters/FileSync');
 
 const adapter = new FileSync(path.join(__dirname, 'data', 'db.json'));
 const db = low(adapter);
-db.defaults({ drivers: [], team: [], applications: [] }).write();
+db.defaults({ drivers: [], team: [], applications: [], convoys: [] }).write();
 
 const app = express();
 
