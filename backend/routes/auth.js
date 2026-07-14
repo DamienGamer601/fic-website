@@ -44,6 +44,7 @@ module.exports = function (db) {
           validatedAt: null,
         };
         db.get('drivers').push(driver).write();
+        discord.postPendingApplication(driver);
       } else {
         driver.username = profile.global_name || profile.username;
         driver.avatar = discord.avatarUrl(profile);

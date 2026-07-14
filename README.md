@@ -79,4 +79,3 @@ Dans `frontend/js/config.js`, vérifie que `API_BASE` pointe vers ton backend.
 - [ ] Configurer le webhook Discord de recrutement (`DISCORD_RECRUIT_WEBHOOK_URL`) pour recevoir les candidatures directement sur le serveur
 - [ ] Ajouter un vrai logo dans `frontend/img/` et l'utiliser à la place du bloc texte "FIC" dans le header
 - [ ] Vérifier les champs retournés par l'API TruckyApp (`/api/stats`) une fois le token configuré — les noms de champs peuvent varier légèrement, ajuste `statistiques.html` si besoin
-"# fic-website" 

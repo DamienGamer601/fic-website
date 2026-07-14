@@ -69,4 +69,38 @@ function avatarUrl(user) {
   return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128`;
 }
 
-module.exports = { exchangeCode, fetchUser, isStaff, getGuildMemberRoles, assignDriverRole, avatarUrl };
+// Poste un message avec boutons Valider/Refuser dans le salon staff quand un
+// nouveau chauffeur se connecte pour la première fois.
+async function postPendingApplication(driver) {
+  if (!process.env.DISCORD_STAFF_CHANNEL_ID) return;
+  try {
+    await axios.post(
+      `${API}/channels/${process.env.DISCORD_STAFF_CHANNEL_ID}/messages`,
+      {
+        embeds: [{
+          title: 'Nouvelle demande d\'accès chauffeur',
+          description: `<@${driver.discordId}> vient de se connecter à l'Espace Chauffeurs du site.`,
+          color: 0x59100b,
+          thumbnail: { url: driver.avatar },
+          fields: [
+            { name: 'Pseudo Discord', value: driver.username, inline: true },
+            { name: 'Statut', value: '⏳ En attente', inline: true },
+          ],
+          timestamp: new Date().toISOString(),
+        }],
+        components: [{
+          type: 1,
+          components: [
+            { type: 2, style: 3, label: 'Valider', custom_id: `validate_driver:${driver.discordId}` },
+            { type: 2, style: 4, label: 'Refuser', custom_id: `refuse_driver:${driver.discordId}` },
+          ],
+        }],
+      },
+      { headers: { Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}` } }
+    );
+  } catch (err) {
+    console.error('Impossible de poster la demande dans Discord:', err.response?.data || err.message);
+  }
+}
+
+module.exports = { exchangeCode, fetchUser, isStaff, getGuildMemberRoles, assignDriverRole, avatarUrl, postPendingApplication };
