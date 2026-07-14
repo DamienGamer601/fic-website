@@ -42,30 +42,93 @@
 
 <!-- Dashboard chauffeur validé -->
 <section class="tight" id="dashboard-section" style="display:none;">
-  <div class="container grid grid-2">
-    <div class="panel">
-      <span class="eyebrow">Mes statistiques</span>
-      <h3>Progression sur la route</h3>
-      <p style="font-size:0.9rem;">Associe ton pseudo en jeu (ETS2/ATS, celui utilisé sur TruckyApp) pour retrouver tes stats perso ici.</p>
-      <div style="display:flex; gap:10px; margin-bottom:6px;">
-        <input id="game-username" placeholder="Ton pseudo en jeu" style="margin-bottom:0;">
-        <button class="btn secondary" id="save-username" style="white-space:nowrap;">Lier</button>
-      </div>
-      <div id="my-stats" style="margin-top:18px;"></div>
-    </div>
-
-    <div class="panel">
-      <span class="eyebrow">À venir</span>
-      <h3>Prochains convois</h3>
-      <div id="convoys-list"><div class="empty-state">Chargement…</div></div>
-    </div>
-  </div>
-</section>
-
-<!-- Panneau staff -->
-<section class="tight">
   <div class="container">
-    <div id="admin-panel" class="panel" style="display:none;">
+
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="overview">Vue d'ensemble</button>
+      <button class="tab-btn" data-tab="convoys">Convois</button>
+      <button class="tab-btn" data-tab="resources">Ressources</button>
+      <button class="tab-btn" data-tab="staff" id="staff-tab-btn" style="display:none;">Staff</button>
+    </div>
+
+    <!-- Vue d'ensemble -->
+    <div class="tab-panel active" id="tab-overview">
+      <div class="grid grid-4" id="overview-stats" style="margin-bottom:24px;">
+        <div class="panel stat-block"><div class="num" id="stat-km">—</div><div class="label">Km parcourus</div></div>
+        <div class="panel stat-block"><div class="num" id="stat-jobs">—</div><div class="label">Livraisons</div></div>
+        <div class="panel stat-block"><div class="num" id="stat-tenure">—</div><div class="label">Membre depuis</div></div>
+        <div class="panel stat-block"><div class="num" id="stat-convoys">—</div><div class="label">Convois à venir</div></div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="panel">
+          <span class="eyebrow">Lier mon profil en jeu</span>
+          <h3>Mes statistiques</h3>
+          <p style="font-size:0.9rem;">Associe ton pseudo en jeu (celui utilisé sur TruckyApp) pour afficher tes stats perso ci-dessus.</p>
+          <div style="display:flex; gap:10px;">
+            <input id="game-username" placeholder="Ton pseudo en jeu" style="margin-bottom:0;">
+            <button class="btn secondary" id="save-username" style="white-space:nowrap;">Lier</button>
+          </div>
+          <p id="username-feedback" style="font-size:0.85rem; margin-top:10px; margin-bottom:0;"></p>
+        </div>
+
+        <div class="panel">
+          <span class="eyebrow">À venir</span>
+          <h3>Prochain convoi</h3>
+          <div id="next-convoy"><div class="empty-state">Chargement…</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Convois -->
+    <div class="tab-panel" id="tab-convoys">
+      <span class="eyebrow">Calendrier de la flotte</span>
+      <h2>Tous les convois à venir</h2>
+      <div id="convoys-list" style="margin-top:20px;"><div class="empty-state">Chargement…</div></div>
+    </div>
+
+    <!-- Ressources -->
+    <div class="tab-panel" id="tab-resources">
+      <span class="eyebrow">Boîte à outils</span>
+      <h2>Ressources chauffeur</h2>
+      <div class="grid grid-2" style="margin-top:20px;">
+        <div class="panel resource-card">
+          <div class="icon">💬</div>
+          <div>
+            <h3 style="margin-bottom:4px;">Serveur Discord</h3>
+            <p>Rejoins les salons vocaux de convoi et les annonces officielles.</p>
+            <a class="btn secondary" href="#" id="link-discord" target="_blank" rel="noopener">Ouvrir Discord</a>
+          </div>
+        </div>
+        <div class="panel resource-card">
+          <div class="icon">📄</div>
+          <div>
+            <h3 style="margin-bottom:4px;">Règlement intérieur</h3>
+            <p>Les règles de conduite et de comportement à respecter au sein de FIC.</p>
+            <a class="btn secondary" href="#" id="link-reglement" target="_blank" rel="noopener">Consulter</a>
+          </div>
+        </div>
+        <div class="panel resource-card">
+          <div class="icon">📊</div>
+          <div>
+            <h3 style="margin-bottom:4px;">Page TruckyApp</h3>
+            <p>Le tableau de bord complet de la compagnie sur TruckyApp Hub.</p>
+            <a class="btn secondary" href="https://hub.truckyapp.com/company/82" target="_blank" rel="noopener">Voir la page</a>
+          </div>
+        </div>
+        <div class="panel resource-card">
+          <div class="icon">🖥️</div>
+          <div>
+            <h3 style="margin-bottom:4px;">FIC Tools</h3>
+            <p>L'application de bureau FIC : gestion de profils, convois, et plus.</p>
+            <a class="btn secondary" href="https://fictools.onrender.com" target="_blank" rel="noopener">Télécharger</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Staff -->
+    <div class="tab-panel" id="tab-staff">
       <span class="eyebrow">Réservé au staff</span>
       <h2>Chauffeurs en attente de validation</h2>
       <div id="pending-list"></div>
@@ -105,6 +168,7 @@
 
       <div id="admin-convoys-list" style="margin-top:24px;"></div>
     </div>
+
   </div>
 </section>
 
@@ -120,9 +184,12 @@
 <script>
 document.getElementById('year').textContent = new Date().getFullYear();
 
+// ⚙️ PERSONNALISATION : remplace ces liens par les vrais de ta VTC
+document.getElementById('link-discord').href = 'https://discord.gg/TON-INVITE';
+document.getElementById('link-reglement').href = '#';
+
 const root = document.getElementById('app-root');
 const dashboardSection = document.getElementById('dashboard-section');
-const adminPanel = document.getElementById('admin-panel');
 const params = new URLSearchParams(location.search);
 const authError = params.get('error');
 const incomingToken = params.get('token');
@@ -138,6 +205,7 @@ function authHeaders(json) {
   if (json) h['Content-Type'] = 'application/json';
   return h;
 }
+function fmt(n) { return n == null ? '—' : Number(n).toLocaleString('fr-FR'); }
 
 const STATUS_META = {
   pending: { label: 'Candidature en attente', class: 'warn', text: "Ton compte Discord est bien lié. Un membre du staff doit encore valider ton accès à l'espace chauffeur. Reviens un peu plus tard !" },
@@ -160,7 +228,6 @@ function logout() {
   location.reload();
 }
 
-// --- Statut en attente / refusé : simple carte, pas de dashboard ---
 function renderStatusCard(driver) {
   const meta = STATUS_META[driver.status];
   root.innerHTML = `
@@ -176,10 +243,20 @@ function renderStatusCard(driver) {
   document.getElementById('logout-btn').addEventListener('click', logout);
 }
 
-// --- Chauffeur validé : dashboard complet ---
+// --- Badge d'ancienneté, dans l'esprit des badges Twitch FIC (paliers progressifs) ---
+function tenureBadge(joinedAt) {
+  const days = Math.floor((Date.now() - new Date(joinedAt).getTime()) / 86400000);
+  if (days < 30) return { label: 'Nouveau', cls: 'tenure-new', text: `${days} jour${days > 1 ? 's' : ''}` };
+  if (days < 90) return { label: 'Confirmé', cls: 'tenure-confirmed', text: `${Math.floor(days / 30)} mois` };
+  if (days < 365) return { label: 'Expérimenté', cls: 'tenure-experienced', text: `${Math.floor(days / 30)} mois` };
+  return { label: 'Vétéran', cls: 'tenure-veteran', text: `${Math.floor(days / 365)} an(s)` };
+}
+
 function renderDashboard(driver) {
   document.getElementById('page-title').textContent = `Bienvenue, ${driver.username}`;
   document.getElementById('page-intro').textContent = "Ton espace personnel : suis ta progression et les prochains convois de la flotte.";
+
+  const tenure = tenureBadge(driver.joinedAt);
 
   root.innerHTML = `
     <div class="panel" style="display:flex; align-items:center; gap:18px; flex-wrap:wrap;">
@@ -187,9 +264,9 @@ function renderDashboard(driver) {
            style="border-radius:50%; border:2px solid var(--accent-bright);">
       <div style="flex:1; min-width:200px;">
         <h3 style="margin-bottom:4px;">${driver.username}</h3>
-        <div class="badge ok"><span class="dot"></span>Chauffeur validé</div>
-        <div style="color:var(--text-faint); font-size:0.85rem; margin-top:6px;">
-          Membre depuis le ${new Date(driver.joinedAt).toLocaleDateString('fr-FR')}
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <div class="badge ok"><span class="dot"></span>Chauffeur validé</div>
+          <div class="badge ${tenure.cls}">${tenure.label} · ${tenure.text}</div>
         </div>
       </div>
       <button class="btn secondary" id="logout-btn">Se déconnecter</button>
@@ -197,34 +274,54 @@ function renderDashboard(driver) {
   `;
   document.getElementById('logout-btn').addEventListener('click', logout);
 
+  document.getElementById('stat-tenure').textContent = tenure.text;
   dashboardSection.style.display = 'block';
   document.getElementById('game-username').value = driver.gameUsername || '';
   loadMyStats(driver);
   loadConvoys();
+  setupTabs();
 
   document.getElementById('save-username').addEventListener('click', async () => {
     const gameUsername = document.getElementById('game-username').value.trim();
+    const feedback = document.getElementById('username-feedback');
+    feedback.textContent = 'Enregistrement…';
+    feedback.style.color = 'var(--text-dim)';
     const res = await fetch(`${API_BASE}/api/me`, {
       method: 'PATCH',
       headers: authHeaders(true),
       body: JSON.stringify({ gameUsername }),
     });
     const updated = await res.json();
+    feedback.textContent = 'Pseudo enregistré.';
+    feedback.style.color = 'var(--ok)';
     loadMyStats(updated);
   });
 
-  if (driver.isStaff) loadAdminPanel();
+  if (driver.isStaff) {
+    document.getElementById('staff-tab-btn').style.display = 'inline-block';
+    loadAdminPanel();
+  }
 }
 
-function fmt(n) { return n == null ? '—' : Number(n).toLocaleString('fr-FR'); }
+function setupTabs() {
+  const buttons = document.querySelectorAll('.tab-btn');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      buttons.forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+    });
+  });
+}
 
 async function loadMyStats(driver) {
-  const box = document.getElementById('my-stats');
+  const box = document.getElementById('username-feedback');
   if (!driver.gameUsername) {
-    box.innerHTML = `<div class="empty-state">Renseigne ton pseudo en jeu ci-dessus pour afficher tes statistiques personnelles.</div>`;
+    document.getElementById('stat-km').textContent = '—';
+    document.getElementById('stat-jobs').textContent = '—';
     return;
   }
-  box.innerHTML = `<div class="empty-state">Recherche de tes statistiques…</div>`;
   try {
     const res = await fetch(`${API_BASE}/api/stats`);
     if (!res.ok) throw new Error();
@@ -232,45 +329,63 @@ async function loadMyStats(driver) {
     const members = data.members || [];
     const mine = members.find(m => (m.username ?? m.name ?? '').toLowerCase() === driver.gameUsername.toLowerCase());
     if (!mine) {
-      box.innerHTML = `<div class="empty-state">Aucune correspondance trouvée sur TruckyApp pour "${driver.gameUsername}". Vérifie l'orthographe exacte de ton pseudo en jeu.</div>`;
+      document.getElementById('stat-km').textContent = '—';
+      document.getElementById('stat-jobs').textContent = '—';
       return;
     }
-    box.innerHTML = `
-      <div class="grid grid-2">
-        <div class="stat-block"><div class="num">${fmt(mine.distance)}</div><div class="label">Km parcourus</div></div>
-        <div class="stat-block"><div class="num">${fmt(mine.jobs_count ?? mine.jobs)}</div><div class="label">Livraisons</div></div>
+    document.getElementById('stat-km').textContent = fmt(mine.distance);
+    document.getElementById('stat-jobs').textContent = fmt(mine.jobs_count ?? mine.jobs);
+  } catch (e) { /* stats indisponibles, on garde les tirets */ }
+}
+
+let allConvoys = [];
+
+function convoyCountdown(dateStr) {
+  const diffMs = new Date(dateStr).getTime() - Date.now();
+  const days = Math.floor(diffMs / 86400000);
+  const hours = Math.floor((diffMs % 86400000) / 3600000);
+  if (diffMs < 0) return 'En cours / passé';
+  if (days === 0) return `Dans ${hours}h`;
+  return `Dans ${days} jour${days > 1 ? 's' : ''}`;
+}
+
+function convoyCard(c) {
+  return `
+    <div class="card" style="margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+        <strong>${c.title}</strong>
+        <span class="countdown">${convoyCountdown(c.date)}</span>
       </div>
-    `;
-  } catch (e) {
-    box.innerHTML = `<div class="empty-state">Statistiques indisponibles pour le moment.</div>`;
-  }
+      <div style="color:var(--text-dim); font-size:0.9rem; margin-top:6px;">
+        ${new Date(c.date).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
+        ${c.departure || c.destination ? ` · ${c.departure || '?'} → ${c.destination || '?'}` : ''}
+      </div>
+      ${c.description ? `<p style="margin-top:8px; margin-bottom:0;">${c.description}</p>` : ''}
+      ${c.discordEventUrl ? `<a href="${c.discordEventUrl}" target="_blank" rel="noopener" style="color:var(--accent-bright); font-size:0.85rem;">Voir l'évènement Discord →</a>` : ''}
+    </div>
+  `;
 }
 
 async function loadConvoys() {
   const list = document.getElementById('convoys-list');
+  const nextBox = document.getElementById('next-convoy');
   try {
     const res = await fetch(`${API_BASE}/api/convoys`);
     const convoys = await res.json();
-    const upcoming = convoys.filter(c => new Date(c.date) >= new Date());
-    if (!upcoming.length) {
+    allConvoys = convoys.filter(c => new Date(c.date) >= new Date());
+    document.getElementById('stat-convoys').textContent = allConvoys.length;
+
+    if (!allConvoys.length) {
       list.innerHTML = `<div class="empty-state">Aucun convoi programmé pour le moment.</div>`;
+      nextBox.innerHTML = `<div class="empty-state">Rien de prévu pour l'instant.</div>`;
       return;
     }
-    list.innerHTML = upcoming.map(c => `
-      <div class="card" style="margin-bottom:12px;">
-        <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-          <strong>${c.title}</strong>
-          <span style="color:var(--accent-bright); font-family:var(--font-display); font-size:0.8rem;">
-            ${new Date(c.date).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
-          </span>
-        </div>
-        ${c.departure || c.destination ? `<div style="color:var(--text-dim); font-size:0.9rem; margin-top:6px;">${c.departure || '?'} → ${c.destination || '?'}</div>` : ''}
-        ${c.description ? `<p style="margin-top:8px; margin-bottom:0;">${c.description}</p>` : ''}
-        ${c.discordEventUrl ? `<a href="${c.discordEventUrl}" target="_blank" rel="noopener" style="color:var(--accent-bright); font-size:0.85rem;">Voir l'évènement Discord →</a>` : ''}
-      </div>
-    `).join('');
+
+    list.innerHTML = allConvoys.map(convoyCard).join('');
+    nextBox.innerHTML = convoyCard(allConvoys[0]);
   } catch (e) {
     list.innerHTML = `<div class="empty-state">Impossible de charger les convois.</div>`;
+    nextBox.innerHTML = `<div class="empty-state">Impossible de charger les convois.</div>`;
   }
 }
 
@@ -279,7 +394,6 @@ async function loadAdminPanel() {
     const res = await fetch(`${API_BASE}/api/admin/pending`, { headers: authHeaders() });
     if (!res.ok) return;
     const pending = await res.json();
-    adminPanel.style.display = 'block';
     const list = document.getElementById('pending-list');
 
     if (!pending.length) {
