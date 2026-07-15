@@ -55,9 +55,17 @@
     <div class="tab-panel active" id="tab-overview">
       <div class="grid grid-4" id="overview-stats" style="margin-bottom:24px;">
         <div class="panel stat-block"><div class="num" id="stat-km">—</div><div class="label">Km parcourus</div></div>
-        <div class="panel stat-block"><div class="num" id="stat-jobs">—</div><div class="label">Livraisons</div></div>
+        <div class="panel stat-block"><div class="num" id="stat-level">—</div><div class="label">Niveau TruckyApp</div></div>
         <div class="panel stat-block"><div class="num" id="stat-tenure">—</div><div class="label">Membre depuis</div></div>
         <div class="panel stat-block"><div class="num" id="stat-convoys">—</div><div class="label">Convois à venir</div></div>
+      </div>
+
+      <div class="panel" id="rank-panel" style="display:none; margin-bottom:24px;">
+        <span class="eyebrow">Progression</span>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <span class="badge" id="rank-badge"></span>
+          <span id="rank-tags" style="display:flex; gap:6px; flex-wrap:wrap;"></span>
+        </div>
       </div>
 
       <div class="grid grid-2">
@@ -185,8 +193,8 @@
 document.getElementById('year').textContent = new Date().getFullYear();
 
 // ⚙️ PERSONNALISATION : remplace ces liens par les vrais de ta VTC
-document.getElementById('link-discord').href = 'https://discord.gg/fHXpA3QEZe';
-document.getElementById('link-reglement').href = 'https://discord.com/channels/1104533531671134280/1389332471736303786';
+document.getElementById('link-discord').href = 'https://discord.gg/TON-INVITE';
+document.getElementById('link-reglement').href = '#';
 
 const root = document.getElementById('app-root');
 const dashboardSection = document.getElementById('dashboard-section');
@@ -316,10 +324,11 @@ function setupTabs() {
 }
 
 async function loadMyStats(driver) {
-  const box = document.getElementById('username-feedback');
+  const rankPanel = document.getElementById('rank-panel');
   if (!driver.gameUsername) {
     document.getElementById('stat-km').textContent = '—';
-    document.getElementById('stat-jobs').textContent = '—';
+    document.getElementById('stat-level').textContent = '—';
+    rankPanel.style.display = 'none';
     return;
   }
   try {
@@ -327,14 +336,28 @@ async function loadMyStats(driver) {
     if (!res.ok) throw new Error();
     const data = await res.json();
     const members = data.members || [];
-    const mine = members.find(m => (m.username ?? m.name ?? '').toLowerCase() === driver.gameUsername.toLowerCase());
+    const mine = members.find(m => (m.name || '').toLowerCase() === driver.gameUsername.toLowerCase());
     if (!mine) {
       document.getElementById('stat-km').textContent = '—';
-      document.getElementById('stat-jobs').textContent = '—';
+      document.getElementById('stat-level').textContent = '—';
+      rankPanel.style.display = 'none';
       return;
     }
-    document.getElementById('stat-km').textContent = fmt(mine.distance);
-    document.getElementById('stat-jobs').textContent = fmt(mine.jobs_count ?? mine.jobs);
+    document.getElementById('stat-km').textContent = fmt(mine.distanceKm);
+    document.getElementById('stat-level').textContent = mine.level != null ? mine.level : '—';
+
+    if (mine.rankName || (mine.tags && mine.tags.length)) {
+      rankPanel.style.display = 'block';
+      const badge = document.getElementById('rank-badge');
+      badge.textContent = mine.rankName || '';
+      badge.style.borderColor = mine.rankColor || 'var(--line-bright)';
+      badge.style.color = mine.rankColor || 'var(--text-dim)';
+      document.getElementById('rank-tags').innerHTML = (mine.tags || []).map(t => `
+        <span class="badge" style="border-color:${t.color || 'var(--line-bright)'}; color:${t.color || 'var(--text-dim)'};">${t.name}</span>
+      `).join('');
+    } else {
+      rankPanel.style.display = 'none';
+    }
   } catch (e) { /* stats indisponibles, on garde les tirets */ }
 }
 

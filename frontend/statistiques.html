@@ -30,7 +30,7 @@
   <div class="container">
     <span class="eyebrow">Données en direct — TruckyApp VTC Hub</span>
     <h1>Statistiques de la flotte</h1>
-    <p style="max-width:560px;">Distance parcourue, livraisons effectuées et classement des chauffeurs, synchronisés depuis notre page <a href="https://hub.truckyapp.com/company/82" target="_blank" rel="noopener" style="color:var(--accent-bright); text-decoration:underline;">TruckyApp</a>.</p>
+    <p style="max-width:560px;">Distance parcourue, revenu de flotte et classement des chauffeurs, synchronisés depuis notre page <a href="https://hub.truckyapp.com/company/82" target="_blank" rel="noopener" style="color:var(--accent-bright); text-decoration:underline;">TruckyApp</a>.</p>
   </div>
 </section>
 
@@ -38,9 +38,9 @@
   <div class="container">
     <div class="grid grid-4" id="global-stats">
       <div class="panel stat-block"><div class="num">—</div><div class="label">Km parcourus</div></div>
-      <div class="panel stat-block"><div class="num">—</div><div class="label">Livraisons</div></div>
       <div class="panel stat-block"><div class="num">—</div><div class="label">Chauffeurs</div></div>
-      <div class="panel stat-block"><div class="num">—</div><div class="label">Revenu (€ virtuels)</div></div>
+      <div class="panel stat-block"><div class="num">—</div><div class="label">Revenu total</div></div>
+      <div class="panel stat-block"><div class="num">—</div><div class="label">Niveau moyen</div></div>
     </div>
   </div>
 </section>
@@ -52,7 +52,7 @@
     <div class="panel" style="margin-top:20px; padding:0; overflow-x:auto;">
       <table id="members-table">
         <thead>
-          <tr><th>#</th><th>Chauffeur</th><th>Km parcourus</th><th>Livraisons</th></tr>
+          <tr><th>#</th><th>Chauffeur</th><th>Rang</th><th>Km parcourus</th><th>Niveau</th></tr>
         </thead>
         <tbody id="members-tbody">
           <tr><td colspan="4" class="empty-state">Chargement des statistiques…</td></tr>
@@ -85,31 +85,35 @@
         throw new Error(err.error || 'API indisponible');
       }
       const data = await res.json();
-      const c = data.company || {};
+      const t = data.totals || {};
       const members = data.members || [];
+      const avgLevel = members.length
+        ? members.reduce((sum, m) => sum + (m.level || 0), 0) / members.length
+        : 0;
 
       const nums = document.querySelectorAll('#global-stats .num');
-      nums[0].textContent = fmt(c.distance ?? c.total_distance);
-      nums[1].textContent = fmt(c.jobs_count ?? c.total_jobs);
-      nums[2].textContent = fmt(members.length || c.members_count);
-      nums[3].textContent = fmt(c.revenue ?? c.total_revenue);
+      nums[0].textContent = fmt(t.distanceKm);
+      nums[1].textContent = fmt(t.members);
+      nums[2].textContent = `${fmt(Math.round(t.revenue || 0))} ${data.company?.currency || ''}`;
+      nums[3].textContent = avgLevel ? Math.round(avgLevel) : '—';
 
       if (!members.length) {
-        tbody.innerHTML = `<tr><td colspan="4" class="empty-state">Aucun chauffeur trouvé sur TruckyApp pour le moment.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Aucun chauffeur trouvé sur TruckyApp pour le moment.</td></tr>`;
         return;
       }
 
-      const sorted = [...members].sort((a, b) => (b.distance ?? 0) - (a.distance ?? 0));
-      tbody.innerHTML = sorted.map((m, i) => `
+      // Déjà trié par km décroissant côté backend
+      tbody.innerHTML = members.map((m, i) => `
         <tr>
           <td>${i + 1}</td>
-          <td>${m.username ?? m.name ?? 'Chauffeur'}</td>
-          <td>${fmt(m.distance)} km</td>
-          <td>${fmt(m.jobs_count ?? m.jobs)}</td>
+          <td>${m.name ?? 'Chauffeur'}</td>
+          <td><span class="badge" style="border-color:${m.rankColor || 'var(--line-bright)'}; color:${m.rankColor || 'var(--text-dim)'};">${m.rankName ?? '—'}</span></td>
+          <td>${fmt(m.distanceKm)} km</td>
+          <td>${fmt(m.level)}</td>
         </tr>
       `).join('');
     } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="4" class="empty-state">Statistiques indisponibles pour le moment (${e.message}). Consulte directement <a href="https://hub.truckyapp.com/company/82" target="_blank" style="color:var(--accent-bright);">la page TruckyApp</a>.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Statistiques indisponibles pour le moment (${e.message}). Consulte directement <a href="https://hub.truckyapp.com/company/82" target="_blank" style="color:var(--accent-bright);">la page TruckyApp</a>.</td></tr>`;
     }
   })();
 </script>

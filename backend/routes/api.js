@@ -170,6 +170,8 @@ module.exports = function (db) {
   });
 
   // --- Statistiques VTC via TruckyApp (avec cache 5 min) ---
+  // On reformate la réponse brute de TruckyApp (champs verbeux, pagination imbriquée,
+  // données techniques internes) en un format simple et stable pour le frontend.
   router.get('/stats', async (req, res) => {
     const now = Date.now();
     if (statsCache.data && now - statsCache.fetchedAt < CACHE_TTL_MS) {
@@ -190,14 +192,59 @@ module.exports = function (db) {
       };
       const companyId = process.env.TRUCKY_COMPANY_ID;
 
-      const [companyRes, membersRes] = await Promise.all([
+      const [companyRes, membersRes, jobsRes] = await Promise.all([
         axios.get(`${TRUCKY_API}/company/${companyId}`, { headers }),
         axios.get(`${TRUCKY_API}/company/${companyId}/members`, { headers }),
+        axios.get(`${TRUCKY_API}/company/${companyId}/jobs`, { headers, params: { per_page: 1 } }).catch(() => null),
       ]);
 
+      const c = companyRes.data;
+      const rawMembers = membersRes.data?.data || [];
+
+      const members = rawMembers.map(m => ({
+        id: m.id,
+        name: m.name,
+        avatarUrl: m.avatar_url,
+        level: m.level ?? null,
+        points: m.points ?? null,
+        distanceKm: Math.round(m.total_driven_distance_km || 0),
+        revenue: m.total_revenue || 0,
+        lastJobDays: m.last_job_days ?? null,
+        roleName: m.role?.name || null,
+        roleColor: m.role?.color || null,
+        rankName: m.rank?.name || null,
+        rankColor: m.rank?.color || null,
+        tags: (m.company_tags || []).map(t => ({ name: t.name, color: t.color })),
+        publicUrl: m.public_url || null,
+      })).sort((a, b) => b.distanceKm - a.distanceKm);
+
+      const totalDistance = members.reduce((sum, m) => sum + m.distanceKm, 0);
+      const totalRevenue = members.reduce((sum, m) => sum + m.revenue, 0);
+
       const payload = {
-        company: companyRes.data,
-        members: membersRes.data,
+        company: {
+          name: c.name,
+          tag: c.tag,
+          slogan: c.slogan,
+          about: c.about,
+          avatarUrl: c.avatar_url,
+          coverUrl: c.cover_url,
+          discord: c.discord,
+          twitter: c.twitter,
+          twitch: c.twitch,
+          youtube: c.youtube,
+          recruitment: c.recruitment,
+          requirements: c.requirements,
+          publicUrl: c.public_url,
+          currency: c.currency || 'T¢',
+        },
+        totals: {
+          distanceKm: totalDistance,
+          revenue: totalRevenue,
+          jobs: jobsRes?.data?.total ?? null,
+          members: c.members_count ?? members.length,
+        },
+        members,
       };
 
       statsCache = { data: payload, fetchedAt: now };

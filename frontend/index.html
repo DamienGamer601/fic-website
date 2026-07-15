@@ -45,8 +45,8 @@
       <span class="eyebrow">Manifeste de route — chiffres clés</span>
       <div class="grid grid-4" id="home-stats">
         <div class="stat-block"><div class="num">—</div><div class="label">Km parcourus</div></div>
-        <div class="stat-block"><div class="num">—</div><div class="label">Livraisons</div></div>
         <div class="stat-block"><div class="num">—</div><div class="label">Chauffeurs actifs</div></div>
+        <div class="stat-block"><div class="num">—</div><div class="label">Revenu total</div></div>
         <div class="stat-block"><div class="num">—</div><div class="label">Convois organisés</div></div>
       </div>
     </div>
@@ -88,19 +88,25 @@
 
   (async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/stats`);
-      if (!res.ok) return;
-      const data = await res.json();
-      const c = data.company || {};
+      const [statsRes, convoysRes] = await Promise.all([
+        fetch(`${API_BASE}/api/stats`),
+        fetch(`${API_BASE}/api/convoys`),
+      ]);
       const blocks = document.querySelectorAll('#home-stats .num');
-      const km = c.distance ?? c.total_distance ?? null;
-      const jobs = c.jobs_count ?? c.total_jobs ?? null;
-      const members = (data.members || []).length || c.members_count || null;
-      const convoys = c.events_count ?? c.convoys_count ?? null;
-      if (km) blocks[0].textContent = Number(km).toLocaleString('fr-FR');
-      if (jobs) blocks[1].textContent = Number(jobs).toLocaleString('fr-FR');
-      if (members) blocks[2].textContent = members;
-      if (convoys) blocks[3].textContent = convoys;
+
+      if (statsRes.ok) {
+        const data = await statsRes.json();
+        const t = data.totals || {};
+        const currency = (data.company && data.company.currency) || 'T¢';
+        if (t.distanceKm != null) blocks[0].textContent = Number(t.distanceKm).toLocaleString('fr-FR');
+        if (t.members != null) blocks[1].textContent = t.members;
+        if (t.revenue != null) blocks[2].textContent = `${Math.round(t.revenue).toLocaleString('fr-FR')} ${currency}`;
+      }
+
+      if (convoysRes.ok) {
+        const convoys = await convoysRes.json();
+        blocks[3].textContent = convoys.length;
+      }
     } catch (e) { /* API pas encore configurée, on garde les tirets */ }
   })();
 </script>
